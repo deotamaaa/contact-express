@@ -1,7 +1,8 @@
 import supertest from "supertest";
 import { web } from "../src/application/web.js";
 import { logger } from "../src/application/logging.js";
-import { createTestUser, removeTestUser } from "./test-util.js";
+import { createTestUser, getTestUser, removeTestUser } from "./test-util.js";
+import bcrpyt from "bcrypt";
 import { func } from "joi";
 
 describe("POST /api/users", function () {
@@ -122,5 +123,58 @@ describe("GET /api/users/current", function () {
     expect(result.status).toBe(200);
     expect(result.body.data.username).toBe("user1");
     expect(result.body.data.name).toBe("Test");
+  });
+});
+
+describe("PUT /api/users/current", function () {
+  beforeEach(async () => {
+    await createTestUser();
+  });
+
+  afterEach(async () => {
+    await removeTestUser();
+  });
+
+  it("should can update user", async () => {
+    const result = await supertest(web)
+      .patch("/api/users/current")
+      .set("Authorization", "token")
+      .send({
+        name: "Test 2",
+        password: "password12",
+      });
+    expect(result.status).toBe(200);
+    expect(result.body.data.username).toBe("user1");
+    expect(result.body.data.name).toBe("Test 2");
+
+    const user = await getTestUser();
+    expect(await bcrpyt.compare("password12", user.password)).toBe(true);
+  });
+
+  it("should can update user name", async () => {
+    const result = await supertest(web)
+      .patch("/api/users/current")
+      .set("Authorization", "token")
+      .send({
+        name: "Test 2",
+      });
+    expect(result.status).toBe(200);
+    expect(result.body.data.username).toBe("user1");
+    expect(result.body.data.name).toBe("Test 2");
+  });
+
+  it("should can update user Password", async () => {
+    const result = await supertest(web)
+      .patch("/api/users/current")
+      .set("Authorization", "token")
+      .send({
+        password: "password12",
+      });
+    expect(result.status).toBe(200);
+    expect(result.body.data.username).toBe("user1");
+    expect(result.body.data.name).toBe("Test");
+
+    const user = await getTestUser();
+    expect(await bcrpyt.compare("password12", user.password)).toBe(true);
   });
 });
